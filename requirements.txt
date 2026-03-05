@@ -1,0 +1,27 @@
+# ── Telegram Bot ────────────────────────────────────────────
+aiogram>=3.24.0
+
+# ── LLM & Embeddings ────────────────────────────────────────
+groq>=1.0.0
+sentence-transformers>=5.2.0
+
+# ── Vector Store ────────────────────────────────────────────
+faiss-cpu>=1.13.2
+numpy>=2.2.0
+
+# ── Document Parsing ────────────────────────────────────────
+pymupdf>=1.26.0
+docx2txt>=0.9
+
+# ── Config ──────────────────────────────────────────────────
+pydantic-settings>=2.12.0
+
+# ── Observability ───────────────────────────────────────────
+python-json-logger>=3.0.0
+sentry-sdk>=2.0.0
+prometheus-client>=0.24.0
+
+# ── Dev / CI (не нужны в Docker-образе) ────────────────────
+pytest>=8.0
+ruff>=0.4
+pre-commit>=3.0

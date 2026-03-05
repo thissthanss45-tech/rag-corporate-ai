@@ -1,0 +1,29 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+pydantic==2.11.7
+pydantic-settings==2.10.1
+python-multipart==0.0.20
+
+# Queue / workers
+celery==5.5.3
+amqp==5.3.1
+kombu==5.5.4
+redis==6.4.0
+
+# Search stack (stage 2 integration)
+qdrant-client==1.15.1
+rank-bm25==0.2.2
+numpy==2.2.6
+fastembed==0.4.2
+
+# HTTP and resilience
+httpx==0.28.1
+tenacity==9.1.2
+groq==0.30.0
+
+# Reranker (cross-encoder, ONNX, без torch)
+flashrank==0.2.10
+
+# Observability
+loguru==0.7.3
+prometheus-client==0.22.1

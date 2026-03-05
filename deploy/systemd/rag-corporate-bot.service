@@ -1,0 +1,24 @@
+[Unit]
+Description=Corporate RAG Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/rag-corporatet-ai
+EnvironmentFile=/opt/rag-corporatet-ai/.env
+ExecStart=/usr/bin/python3 -m app.main bot
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
+User=ragbot
+Group=ragbot
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/rag-corporatet-ai/data /opt/rag-corporatet-ai/indices /tmp
+
+[Install]
+WantedBy=multi-user.target

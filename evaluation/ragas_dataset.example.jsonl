@@ -1,0 +1,5 @@
+{"question": "Какова политика паролей в компании?", "ground_truth": "Пароль должен содержать минимум 12 символов, включая цифры и специальные символы. Пароли меняются каждые 90 дней.", "expected_sources": ["security_policy.pdf"]}
+{"question": "Каков процесс эскалации инцидентов безопасности?", "ground_truth": "L1 поддержка → L2 инженер безопасности → CISO при severity HIGH.", "expected_sources": ["runbook.docx", "incident_policy.pdf"]}
+{"question": "Кто отвечает за резервное копирование данных?", "ground_truth": "Команда DevOps отвечает за ежедневное резервное копирование в 03:00 UTC.", "expected_sources": ["operations_manual.pdf"]}
+{"question": "Какие требования к VPN доступу удалённых сотрудников?", "ground_truth": "Все удалённые сотрудники обязаны использовать корпоративный VPN при доступе к внутренним системам.", "expected_sources": ["remote_work_policy.pdf"]}
+{"question": "Как классифицируются конфиденциальные данные?", "ground_truth": "Данные делятся на 4 класса: Public, Internal, Confidential, Restricted.", "expected_sources": ["data_classification_policy.pdf"]}

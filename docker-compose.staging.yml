@@ -1,0 +1,8 @@
+services:
+  rag-bot:
+    environment:
+      APP_ENV: staging
+      LOG_LEVEL: DEBUG
+      LOG_JSON: "true"
+      METRICS_ENABLED: "true"
+      EVAL_FAIL_ON_MISSING_DATASET: "false"

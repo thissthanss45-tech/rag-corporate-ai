@@ -1,0 +1,43 @@
+{"id":"whois_root","category":"who_is","question":"Элиху Рут кто такой?","expected_keywords":["государственный секретарь США"]}
+{"id":"whois_jqa","category":"who_is","question":"Джон Куинси Адамс кто такой?","expected_keywords":["государственный секретарь"]}
+{"id":"whois_jefferson","category":"who_is","question":"Томас Джефферсон кто такой?","expected_keywords":["президент", "США"]}
+{"id":"whois_hay","category":"who_is","question":"Джон Хэй кто такой?","expected_keywords":["государственный секретарь"]}
+{"id":"whois_seward","category":"who_is","question":"Уильям Сьюард кто такой?","expected_keywords":["государственный секретарь"]}
+{"id":"whois_lansing","category":"who_is","question":"Роберт Лансинг кто такой?","expected_keywords":["государственный секретарь"]}
+{"id":"whois_rush","category":"who_is","question":"Ричард Раш кто такой?","expected_keywords":["государственный секретарь"]}
+{"id":"whois_monroe","category":"who_is","question":"Джеймс Монро кто такой?","expected_keywords":["президент", "США"]}
+{"id":"whois_jackson","category":"who_is","question":"Эндрю Джексон кто такой?","expected_keywords":["президент", "США"]}
+{"id":"whois_washington","category":"who_is","question":"Джордж Вашингтон кто такой?","expected_keywords":["президент", "США"]}
+{"id":"whois_cleveland","category":"who_is","question":"Гровер Кливленд кто такой?","expected_keywords":["президент", "США"]}
+{"id":"whois_roosevelt","category":"who_is","question":"Теодор Рузвельт кто такой?","expected_keywords":["президент", "США"]}
+
+{"id":"list_secretaries_docs","category":"list_count","question":"Кто были госсекретарями в США, перечисли тех кто в документах","expected_keywords":["государственных секретарей США", "Джон Куинси Адамс", "Элиху Рут"]}
+{"id":"count_secretaries_docs","category":"list_count","question":"Сколько государственных секретарей США упомянуто в документах?","expected_keywords":["государственных секретар", "упомян"]}
+{"id":"list_presidents_docs","category":"list_count","question":"Перечисли президентов США, которые есть в документах","expected_keywords":["президент", "США", "Джордж Вашингтон"]}
+{"id":"count_presidents_docs","category":"list_count","question":"Сколько президентов США упомянуто в документах?","expected_keywords":["президент", "США", "упомян"]}
+{"id":"count_or_none","category":"list_count","question":"Сколько раз в документах упоминается Элиху Рут?","expected_keywords":["Элиху Рут"]}
+
+{"id":"fact_decl_author","category":"fact","question":"Кто автор Декларации независимости США?","expected_keywords":["Томас Джефферсон"]}
+{"id":"fact_decl_year","category":"fact","question":"В каком году принята Декларация независимости США?","expected_keywords":["1776"]}
+{"id":"fact_open_door","category":"fact","question":"Какая политика США упоминается в контексте соглашения Рута — Такахиры?","expected_keywords":["открытых дверей", "Кита"]}
+{"id":"fact_root_takahira_year","category":"fact","question":"В каком году упоминается соглашение Рута — Такахиры?","expected_keywords":["1908"]}
+{"id":"fact_lansing_ishii","category":"fact","question":"Какое соглашение связано с Робертом Лансингом в документах?","expected_keywords":["Исии", "Лансинг"]}
+{"id":"fact_seward_alaska","category":"fact","question":"С каким приобретением США в 1867 году связан Уильям Сьюард?","expected_keywords":["1867", "Сьюард"]}
+{"id":"fact_amistad","category":"fact","question":"Кто из госсекретарей упоминается в контексте дела «Амистад»?","expected_keywords":["Джон Форсайт"]}
+{"id":"fact_monroe_era","category":"fact","question":"Какой президент США упоминается вместе с Ричардом Рашем в дипломатическом контексте?","expected_keywords":["Джеймс Монро"]}
+{"id":"fact_jefferson_secretary","category":"fact","question":"Кто упоминается как государственный секретарь США в эпоху ранней республики?","expected_keywords":["Томас Джефферсон"]}
+{"id":"fact_hay_quote","category":"fact","question":"Кто назвал Испано-американскую войну «великолепной маленькой войной»?","expected_keywords":["Джон Хэй"]}
+
+{"id":"consistency_root_role","category":"consistency","question":"Элиху Рут был госсекретарем США?","expected_keywords":["Элиху Рут", "государственный секретарь"]}
+{"id":"consistency_jqa_role","category":"consistency","question":"Джон Куинси Адамс был государственным секретарем США?","expected_keywords":["Джон Куинси Адамс", "государственный секретарь"]}
+{"id":"consistency_washington_role","category":"consistency","question":"Джордж Вашингтон был президентом США?","expected_keywords":["Джордж Вашингтон", "президент"]}
+{"id":"consistency_roosevelt_role","category":"consistency","question":"Теодор Рузвельт упоминается как президент США?","expected_keywords":["Теодор Рузвельт", "президент"]}
+{"id":"consistency_lansing_role","category":"consistency","question":"Роберт Лансинг упоминается как госсекретарь США?","expected_keywords":["Роберт Лансинг", "государственный секретарь"]}
+
+{"id":"strict_unknown_person","category":"negative","question":"Кто такой Марк Цукерберг в контексте загруженных документов?","expected_keywords":["Недостаточно данных"]}
+{"id":"strict_unknown_role","category":"negative","question":"Каким президентом Франции был Элиху Рут?","expected_keywords":["Недостаточно данных"]}
+{"id":"strict_irrelevant_entity","category":"negative","question":"Кто такой Сэм Альтман в этих исторических документах?","expected_keywords":["Недостаточно данных"]}
+
+{"id":"style_count_list","category":"style","question":"Сколько госсекретарей США есть в документах, перечисли их","expected_keywords":["упомянуто", ":"]}
+{"id":"style_sources_grounded","category":"style","question":"Кто такой Элиху Рут? Ответь по документам.","expected_keywords":["Элиху Рут", "государственный секретарь"]}
+{"id":"style_no_hallucination","category":"style","question":"Назови госсекретарей США, которых нет в моих документах","expected_keywords":["Недостаточно данных"]}

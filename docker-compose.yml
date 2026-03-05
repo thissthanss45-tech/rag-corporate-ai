@@ -1,0 +1,177 @@
+name: rag-corporate-infra
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rag-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: rag-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - redis_data:/data
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.4
+    container_name: rag-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    healthcheck:
+      test: ["CMD", "/qdrant/qdrant", "--version"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  telegram-bot-api:
+    image: aiogram/telegram-bot-api:latest
+    container_name: rag-telegram-bot-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID:-}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH:-}
+      TELEGRAM_LOCAL: ${TELEGRAM_LOCAL:-1}
+    ports:
+      - "8081:8081"
+    volumes:
+      - shared_uploads:/var/lib/telegram-bot-api
+
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    container_name: rag-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      LOG_LEVEL: INFO
+      API_PREFIX: /api/v1
+      UPLOAD_DIR: /shared/uploads
+      CELERY_BROKER_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CELERY_TASK_DEFAULT_QUEUE: documents.ingest
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION_NAME: documents_chunks
+      EMBEDDING_MODEL_NAME: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+      SPARSE_EMBEDDING_MODEL_NAME: Qdrant/bm25
+      RETRIEVAL_LIMIT: "30"
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-360}
+      MIN_FREE_DISK_MB: "256"
+      GROQ_MODEL_NAME: llama-3.3-70b-versatile
+      SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-change-me-in-prod}
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS:-2}"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - shared_uploads:/shared/uploads
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 45s
+
+  worker:
+    build:
+      context: ./services/worker
+      dockerfile: Dockerfile
+    container_name: rag-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      LOG_LEVEL: INFO
+      CELERY_BROKER_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CELERY_TASK_DEFAULT_QUEUE: documents.ingest
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION_NAME: documents_chunks
+      EMBEDDING_MODEL_NAME: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+      SPARSE_EMBEDDING_MODEL_NAME: Qdrant/bm25
+      CHUNK_SIZE: ${CHUNK_SIZE:-1200}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-200}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+    command: ["sh", "-c", "celery -A app.celery_app:celery_app worker --loglevel=INFO --queues=documents.ingest --concurrency=${WORKER_CONCURRENCY:-4}"]
+    volumes:
+      - shared_uploads:/shared/uploads
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+  bot:
+    build:
+      context: ./services/bot
+      dockerfile: Dockerfile
+    container_name: rag-bot-client
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      LOG_LEVEL: INFO
+      API_BASE_URL: http://api:8000
+      API_PREFIX: /api/v1
+      API_TIMEOUT_SECONDS: ${API_TIMEOUT_SECONDS:-90}
+      API_SERVICE_TOKEN: ${SERVICE_AUTH_TOKEN:-change-me-in-prod}
+      TELEGRAM_API_BASE: http://telegram-bot-api:8081
+      TELEGRAM_LOCAL: "1"
+    volumes:
+      - shared_uploads:/var/lib/telegram-bot-api
+    depends_on:
+      api:
+        condition: service_healthy
+      telegram-bot-api:
+        condition: service_started
+
+volumes:
+  rabbitmq_data:
+  redis_data:
+  qdrant_data:
+  shared_uploads:
+  hf_cache:

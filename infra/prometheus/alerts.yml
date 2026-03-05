@@ -1,0 +1,100 @@
+groups:
+  - name: rag-bot.rules
+    rules:
+      - alert: RAGAPIDown
+        expr: up{job="rag-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAG API is down"
+          description: "Prometheus cannot scrape rag-api metrics endpoint."
+
+      - alert: RAGAPIHighErrorRate
+        expr: |
+          sum(increase(rag_requests_total{job="rag-api",status="error",endpoint!="/metrics",endpoint!="/api/v1/health"}[10m]))
+          /
+          clamp_min(sum(increase(rag_requests_total{job="rag-api",endpoint!="/metrics",endpoint!="/api/v1/health"}[10m])), 1)
+          > 0.02
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAG API high error rate"
+          description: "RAG API error ratio is above 2% in the last 10 minutes."
+
+      - alert: RAGAPISlowResponsesP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(rag_request_duration_seconds_bucket{job="rag-api",endpoint!="/metrics",endpoint!="/api/v1/health"}[10m])) by (le)
+          ) > 8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RAG API slow responses (p95)"
+          description: "API p95 response time is higher than 8 seconds in the last 10 minutes."
+
+      - alert: RAGAPIRateLimitedSpike
+        expr: increase(rag_requests_total{job="rag-api",status="rate_limited"}[10m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RAG API rate-limiting spike"
+          description: "More than 50 requests were rate-limited in the last 10 minutes."
+
+      - alert: RAGAPILowDiskSpace
+        expr: rag_disk_free_bytes{job="rag-api"} < 2147483648
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAG API low disk space"
+          description: "Free disk space on API upload volume is below 2 GB."
+
+      - alert: RAGBotDown
+        expr: up{job="rag-bot"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAG bot is down"
+          description: "Prometheus cannot scrape rag-bot metrics endpoint."
+
+      - alert: RAGBotNoSuccessfulRequests
+        expr: increase(rag_requests_total{status="ok"}[15m]) == 0
+        for: 20m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RAG bot has no successful requests"
+          description: "No successful RAG requests were observed in the last 15 minutes."
+
+      - alert: RAGBotHighErrorRate
+        expr: increase(rag_requests_total{status="error"}[10m]) / clamp_min(increase(rag_requests_total[10m]), 1) > 0.02
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAG bot high error rate"
+          description: "RAG error ratio is above 2% in the last 10 minutes."
+
+      - alert: RAGSlowResponsesP95
+        expr: histogram_quantile(0.95, sum(rate(rag_request_duration_seconds_bucket[10m])) by (le)) > 8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RAG bot slow responses (p95)"
+          description: "p95 response time is higher than 8 seconds in the last 10 minutes."
+
+      - alert: RAGIndexerSlowBuild
+        expr: histogram_quantile(0.95, sum(rate(index_build_duration_seconds_bucket[30m])) by (le)) > 120
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Index build takes too long"
+          description: "p95 index build duration is above 120 seconds."

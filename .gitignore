@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.env
+.venv/
+venv/
+
+indices/
+data/
+
+.pytest_cache/
+.ruff_cache/
+
+*.log
+
+# Project dump files & logs
+full_project_code.txt
+dump_project.py
+bot.log
+*.log
+
+# Generated / runtime
+filebrowser_data/

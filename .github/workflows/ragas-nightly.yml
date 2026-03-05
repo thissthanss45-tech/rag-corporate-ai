@@ -1,0 +1,115 @@
+name: RAGAS Nightly Evaluation
+
+on:
+  schedule:
+    # Каждый день в 03:00 UTC
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      min_faithfulness:
+        description: "Min faithfulness threshold (0–1)"
+        default: "0.65"
+      min_relevancy:
+        description: "Min answer relevancy threshold (0–1)"
+        default: "0.65"
+      min_precision:
+        description: "Min context precision threshold (0–1)"
+        default: "0.50"
+
+jobs:
+  ragas-eval:
+    name: RAGAS Quality Evaluation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Python deps (lightweight)
+        run: |
+          pip install --quiet httpx groq
+
+      - name: Start API stack
+        run: |
+          docker compose up -d rabbitmq redis qdrant api worker
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+
+      - name: Wait for API to be ready
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8000/api/v1/health > /dev/null 2>&1; then
+              echo "API ready after ${i}s"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "❌ API health check timed out"
+          docker compose logs api
+          exit 1
+
+      - name: Check dataset exists
+        run: |
+          if [ ! -f evaluation/ragas_dataset.jsonl ]; then
+            echo "⚠️  evaluation/ragas_dataset.jsonl not found."
+            echo "Copying example dataset for smoke purposes."
+            cp evaluation/ragas_dataset.example.jsonl evaluation/ragas_dataset.jsonl
+          fi
+          echo "Dataset lines: $(wc -l < evaluation/ragas_dataset.jsonl)"
+
+      - name: Run RAGAS evaluation
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          RAG_API_URL: "http://localhost:8000"
+          RAGAS_MIN_FAITHFULNESS: ${{ inputs.min_faithfulness || '0.65' }}
+          RAGAS_MIN_RELEVANCY:    ${{ inputs.min_relevancy    || '0.65' }}
+          RAGAS_MIN_PRECISION:    ${{ inputs.min_precision    || '0.50' }}
+        run: |
+          python scripts/evaluate_ragas.py \
+            --fail-under-faithfulness ${RAGAS_MIN_FAITHFULNESS} \
+            --fail-under-relevancy    ${RAGAS_MIN_RELEVANCY} \
+            --fail-under-precision    ${RAGAS_MIN_PRECISION} \
+            --output evaluation/ragas_results_nightly.jsonl
+
+      - name: Upload RAGAS results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragas-results-${{ github.run_number }}
+          path: |
+            evaluation/ragas_results_nightly.jsonl
+            evaluation/ragas_summary.json
+          retention-days: 30
+
+      - name: Annotate summary in GitHub
+        if: always()
+        run: |
+          if [ -f evaluation/ragas_summary.json ]; then
+            echo "### 📊 RAGAS Nightly Results" >> $GITHUB_STEP_SUMMARY
+            cat evaluation/ragas_summary.json | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          rows = [
+            ('Faithfulness',     d.get('faithfulness',     'N/A')),
+            ('Answer Relevancy', d.get('answer_relevancy', 'N/A')),
+            ('Context Precision',d.get('context_precision','N/A')),
+            ('Context Recall',   d.get('context_recall',   'N/A')),
+            ('Source Hit Rate',  d.get('source_hit_rate',  'N/A')),
+            ('Avg Latency ms',   d.get('avg_latency_ms',   'N/A')),
+          ]
+          print('| Metric | Score |')
+          print('|---|---|')
+          for name, val in rows:
+              print(f'| {name} | {val} |')
+          " >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v

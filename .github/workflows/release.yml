@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Docker image tag"
+        required: true
+        default: "latest"
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  pre-release-quality-gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure quality dataset exists
+        run: test -s evaluation/api_quality.jsonl
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Start API stack for quality gate
+        run: docker compose up -d rabbitmq redis qdrant api
+
+      - name: Wait for API health
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:8000/api/v1/health >/dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "API health check timed out"
+          exit 1
+
+      - name: Run mandatory API quality gate
+        run: make quality-gate
+
+      - name: Stop API stack
+        if: always()
+        run: docker compose down -v
+
+  release:
+    needs: pre-release-quality-gate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r services/api/requirements.txt
+
+      - name: Ruff
+        run: ruff check app tests scripts services/api/app services/api/tests
+
+      - name: Pytest services (mandatory)
+        run: PYTHONPATH=services/api pytest -q services/api/tests
+
+      - name: Build Docker image
+        run: |
+          docker build -t rag-corporate-bot:${{ inputs.image_tag }} .
+
+      - name: Smoke checks
+        run: |
+          python scripts/smoke_checks.py --mode release
+
+      - name: Release summary
+        run: |
+          echo "Release candidate built: rag-corporate-bot:${{ inputs.image_tag }}"
+          echo "Environment: ${{ inputs.environment }}"

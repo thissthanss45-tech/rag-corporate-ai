@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: RAG Bot Dashboards
+    orgId: 1
+    folder: RAG
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

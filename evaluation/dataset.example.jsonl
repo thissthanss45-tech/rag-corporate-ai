@@ -1,0 +1,2 @@
+{"question":"Какие требования к доступу к системе?","expected_sources":["security_policy.pdf"]}
+{"question":"Какой процесс эскалации инцидентов?","expected_sources":["runbook.docx","incident_policy.pdf"]}
