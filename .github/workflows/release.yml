@@ -23,6 +23,48 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          if [ -z "${GROQ_API_KEY}" ]; then
+            echo "❌ Missing required GitHub Actions secret: GROQ_API_KEY"
+            echo "   Configure it in Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+      - name: Create .env for CI
+        run: |
+          cp .env.example .env
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+
+          env_path = Path('.env')
+          values = {}
+          for line in env_path.read_text(encoding='utf-8').splitlines():
+              if not line or line.lstrip().startswith('#') or '=' not in line:
+                  continue
+              key, value = line.split('=', 1)
+              values[key] = value
+
+          overrides = {
+              'GROQ_API_KEY': os.getenv('GROQ_API_KEY', ''),
+              'DEEPSEEK_API_KEY': os.getenv('DEEPSEEK_API_KEY', ''),
+              'SERVICE_AUTH_TOKEN': os.getenv('SERVICE_AUTH_TOKEN', values.get('SERVICE_AUTH_TOKEN', 'change-me-in-prod')),
+          }
+          values.update({key: value for key, value in overrides.items() if value != ''})
+
+          env_path.write_text(
+              ''.join(f'{key}={value}\n' for key, value in values.items()),
+              encoding='utf-8',
+          )
+          PY
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SERVICE_AUTH_TOKEN: ${{ secrets.SERVICE_AUTH_TOKEN }}
+
       - name: Ensure quality dataset exists
         run: test -s evaluation/api_quality.jsonl
 
@@ -43,6 +85,7 @@ jobs:
             sleep 5
           done
           echo "API health check timed out"
+          docker compose logs api
           exit 1
 
       - name: Run mandatory API quality gate
